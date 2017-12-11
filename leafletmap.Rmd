@@ -1,0 +1,52 @@
+---
+title: "Coursera Leaflet Map"
+date: "December 11, 2017"
+output: html_document
+editor_options: 
+  chunk_output_type: console
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = FALSE)
+```
+
+### Monumental Trees in Amsterdam
+The map below shows 1449 trees in Amsterdam that have a monumental status and of which the year they were planted is known. The colors in the legend show the decade in which the tree was planted as well as the number of trees planted in that decade. Clicking on a specific tree's marker shows more information about the tree such as an ID number, the dutch name, the latin name, the exact year it was planted as well as an estimate  of the circumference and/or diameter if that data is available.  
+
+
+```{r , warning=FALSE, message=FALSE}
+library(leaflet)
+library(dplyr)
+```
+
+```{r, cache=TRUE, warning=FALSE, message=FALSE}
+#loaddata
+ds <- read.csv(file="https://ckan.dataplatform.nl/dataset/a6d2cc7c-1184-452b-a946-a871c619ab30/resource/84f649f1-aa79-4f1f-814a-f43ecbb648f8/download/monumentalebomen.csv", header=TRUE, sep=",")
+
+dsclean <- ds[1:1990,] #remove last observation thats consists only of NA
+dsclean$Plantjaar <- as.numeric(dsclean$Plantjaar) 
+dsclean <- dsclean[!is.na(dsclean$Plantjaar),] #remove obs. without a planted year value
+dsclean$decade <- floor((dsclean$Plantjaar/10))*10 #add a variable containing the planted in decade
+dsclean$decade <- factor(dsclean$decade) #change decade to factor
+```
+
+```{r, warning=FALSE, message=FALSE}
+content <- paste(sep = " ",
+"Nr.", dsclean$OBJECTNUMMER, "<br/>",
+"Dutch name:", dsclean$Boomsoort,"<br/>",
+"Latin name:", dsclean$Wetenschappelijke_naam,"<br/>",
+"Year planted:",dsclean$Plantjaar,"<br/>",
+"Diameter:", dsclean$Stamdiameter, "<br/>",
+"Circumference:", dsclean$Stamomtrek)
+
+pal <- colorFactor(palette="RdYlBu", domain=dsclean$decade, alpha = FALSE)
+
+
+map <- dsclean %>% 
+  leaflet() %>% 
+  addTiles() %>% 
+  addCircleMarkers(weight=2, fillOpacity=0.9, opacity=0.5, stroke=TRUE, color=pal(dsclean$decade), lat=dsclean$latitude, lng=dsclean$longitude, popup= content) %>%
+  addLegend(labels = paste(levels(dsclean$decade), " - ",  table(dsclean$decade)), colors = pal(levels(dsclean$decade)), title="Decade - No Trees")
+map
+
+```
